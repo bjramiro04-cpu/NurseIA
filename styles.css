@@ -1,0 +1,185 @@
+/* ============================================================
+   nurseIA — main.css
+   Estilos globales, animaciones y componentes visuales
+   ============================================================ */
+
+/* ── Variables de diseño ─────────────────────────────────── */
+:root {
+  --iris-50:  #f5f3ff;
+  --iris-100: #ede9fe;
+  --iris-200: #ddd6fe;
+  --iris-300: #c4b5fd;
+  --iris-400: #a78bfa;
+  --iris-500: #8b5cf6;
+  --iris-600: #7c3aed;
+  --iris-700: #6d28d9;
+  --iris-800: #5b21b6;
+  --iris-900: #4c1d95;
+
+  --sidebar-expanded:  240px;
+  --sidebar-collapsed: 72px;
+  --header-height:     64px;
+  --radius-card:       16px;
+  --radius-btn:        10px;
+  --shadow-card:       0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-elevated:   0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+}
+
+/* ── Reset mínimo ────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar personalizada ─────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--iris-500); }
+.dark ::-webkit-scrollbar-thumb { background: #4338ca; }
+
+/* ── Animaciones ─────────────────────────────────────────── */
+@keyframes spin     { to   { transform: rotate(360deg); } }
+@keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp  { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes alertPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50%       { box-shadow: 0 0 0 6px rgba(239, 68, 68, .12); }
+}
+@keyframes dotBlink {
+  0%, 80%, 100% { opacity: 0; transform: scale(.8); }
+  40%            { opacity: 1; transform: scale(1); }
+}
+
+.spinner     { animation: spin 0.75s linear infinite; }
+.fade-in     { animation: fadeIn  0.3s ease-out both; }
+.slide-up    { animation: slideUp 0.35s ease-out both; }
+.alert-pulse { animation: alertPulse 2.4s ease-in-out infinite; }
+
+/* Staggered card entrance */
+.diag-card:nth-child(1) { animation-delay: .05s; }
+.diag-card:nth-child(2) { animation-delay: .10s; }
+.diag-card:nth-child(3) { animation-delay: .15s; }
+.diag-card:nth-child(4) { animation-delay: .20s; }
+.diag-card:nth-child(5) { animation-delay: .25s; }
+.diag-card:nth-child(n+6) { animation-delay: .30s; }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar-expanded);
+  transition: width 0.28s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+}
+#sidebar.collapsed { width: var(--sidebar-collapsed); }
+#sidebar.collapsed .sidebar-label { display: none; }
+#sidebar.collapsed #sideLogoText  { display: none; }
+
+/* ── Nav botones activos ─────────────────────────────────── */
+.nav-btn.active {
+  background-color: var(--iris-50);
+  color: var(--iris-700);
+  font-weight: 600;
+}
+.dark .nav-btn.active {
+  background-color: rgba(109, 40, 217, .2);
+  color: #a78bfa;
+}
+
+/* ── Camas del mapa de triaje ────────────────────────────── */
+.cama {
+  transition: transform .18s ease, box-shadow .18s ease;
+  cursor: pointer;
+  border-radius: 10px;
+  user-select: none;
+}
+.cama:hover { transform: scale(1.04); box-shadow: var(--shadow-elevated); }
+.cama:active { transform: scale(.98); }
+
+.cama-rojo    { background: #fee2e2; border: 2px solid #ef4444; }
+.cama-naranja { background: #fff7ed; border: 2px solid #f97316; }
+.cama-verde   { background: #f0fdf4; border: 2px solid #22c55e; }
+.cama-vacia   { background: #f8fafc; border: 2px dashed #cbd5e1; }
+.dark .cama-rojo    { background: #450a0a; border-color: #ef4444; }
+.dark .cama-naranja { background: #431407; border-color: #f97316; }
+.dark .cama-verde   { background: #052e16; border-color: #22c55e; }
+.dark .cama-vacia   { background: #1e293b; border-color: #475569; }
+
+/* ── Pastillas ABCDE ─────────────────────────────────────── */
+.pill-ab  { background:#fee2e2; color:#991b1b; }
+.pill-c   { background:#fef3c7; color:#92400e; }
+.pill-cd  { background:#fef3c7; color:#92400e; }
+.pill-d   { background:#dbeafe; color:#1e40af; }
+.pill-de  { background:#dcfce7; color:#166534; }
+.pill-cde { background:#fef3c7; color:#92400e; }
+.pill-bc  { background:#fee2e2; color:#991b1b; }
+.pill-e   { background:#dcfce7; color:#166534; }
+.pill-ce  { background:#fef3c7; color:#92400e; }
+.dark .pill-ab  { background:#7f1d1d; color:#fca5a5; }
+.dark .pill-c   { background:#78350f; color:#fcd34d; }
+.dark .pill-cd  { background:#78350f; color:#fcd34d; }
+.dark .pill-d   { background:#1e3a5f; color:#93c5fd; }
+.dark .pill-de  { background:#14532d; color:#86efac; }
+.dark .pill-cde { background:#78350f; color:#fcd34d; }
+.dark .pill-bc  { background:#7f1d1d; color:#fca5a5; }
+.dark .pill-e   { background:#14532d; color:#86efac; }
+.dark .pill-ce  { background:#78350f; color:#fcd34d; }
+
+/* ── Chat bubbles ────────────────────────────────────────── */
+.bubble-ai {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #1e293b;
+}
+.bubble-user {
+  background: var(--iris-600);
+  color: #ffffff;
+}
+.dark .bubble-ai  { background: #1e1b4b; border-color: #4338ca; color: #e0e7ff; }
+
+/* Typing indicator dots */
+.typing-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--iris-400);
+  animation: dotBlink 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: .2s; }
+.typing-dot:nth-child(3) { animation-delay: .4s; }
+
+/* ── Progress ring ───────────────────────────────────────── */
+.ring-track { stroke: #e2e8f0; }
+.ring-fill  { stroke: var(--iris-600); transition: stroke-dashoffset .6s ease; }
+.dark .ring-track { stroke: #334155; }
+.dark .ring-fill  { stroke: #a78bfa; }
+
+/* ── Historial items ─────────────────────────────────────── */
+.history-item {
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.history-item:hover {
+  border-color: var(--iris-300);
+  box-shadow: var(--shadow-elevated);
+}
+.dark .history-item:hover { border-color: var(--iris-700); }
+
+/* ── Textarea ────────────────────────────────────────────── */
+textarea { field-sizing: content; min-height: 140px; }
+
+/* ── Reduced motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Mobile adjustments ──────────────────────────────────── */
+@media (max-width: 640px) {
+  #sidebar { position: fixed; z-index: 50; height: 100vh; }
+  #sidebar.collapsed { width: 0; }
+  #main-content { margin-left: 0 !important; }
+}

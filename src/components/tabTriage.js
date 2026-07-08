@@ -8,6 +8,15 @@ import { TRIAGE_DATA } from "../data/triage.js";
 // Estado local: cama actualmente seleccionada
 let selectedCamaId = null;
 
+function getNandaLink(code, title) {
+  try {
+    const q = encodeURIComponent(`NANDA ${code} ${title}`);
+    return `https://www.google.com/search?q=${q}`;
+  } catch (e) {
+    return 'https://www.nanda.org/';
+  }
+}
+
 // ── HTML del tab ────────────────────────────────────────────────
 export function renderTabTriage() {
   return `
@@ -219,12 +228,17 @@ function showCamaDetail(camaId) {
 
   // NANDA pills
   const nandaEl = document.getElementById("camaDetailNANDA");
-  nandaEl.innerHTML = cama.nanda.length
-    ? cama.nanda.map(n => `
+  nandaEl.innerHTML = (cama.nanda || []).length
+    ? (cama.nanda || []).map(n => {
+        const parts = String(n).split(' ');
+        const code = parts[0] && /\d{3,}/.test(parts[0]) ? parts[0] : '';
+        const title = parts.slice(1).join(' ') || n;
+        const url = code ? getNandaLink(code, title) : getNandaLink('', n);
+        return `
         <div class="text-xs px-2.5 py-1.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 rounded-lg border border-violet-100 dark:border-violet-900/30 leading-snug">
-          ${n}
+          <a href="${url}" target="_blank" rel="noopener noreferrer">${n}</a>
         </div>
-      `).join("")
+      `}).join("")
     : `<p class="text-xs text-slate-400 italic">Sin alertas activas.</p>`;
 
   const panel = document.getElementById("camaDetailPanel");

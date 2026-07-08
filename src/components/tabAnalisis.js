@@ -3,9 +3,10 @@
  * Módulo de Análisis Clínico: detección NANDA, ABCDE, evolución generada.
  */
 
-import { NANDA } from "../data/nanda.js";
+import { NANDA } from "../data/nanda.js?v=2";
 import {
   normalizeText,
+  keywordMatches,
   pillClass,
   priorityBadgeClass,
   calcMatchPercent,
@@ -15,7 +16,7 @@ import {
   loadFromStorage,
   formatDate,
   generateId,
-} from "../utils/helpers.js";
+} from "../utils/helpers.js?v=2";
 
 // ── Estado local ────────────────────────────────────────────────
 let isSpanish = true;
@@ -191,9 +192,9 @@ export function analyze() {
   setTimeout(() => {
     setLoading(false);
 
-    // Filtrar diagnósticos por keywords
+    // Filtrar diagnósticos usando motor de matching tolerante
     const found = NANDA.filter(d =>
-      d.palabras_clave.some(kw => cleanText.includes(normalizeText(kw)))
+      d.palabras_clave.some(kw => keywordMatches(kw, cleanText))
     );
 
     if (!found.length) {
@@ -201,8 +202,8 @@ export function analyze() {
       return;
     }
 
-    const sorted = sortByPriority(found);
-    lastResults = { sorted, rawText };
+    const sorted = sortByPriority(found, cleanText);
+    lastResults = { sorted, rawText, cleanText };
 
     renderDiagnoses(sorted, cleanText);
     renderEvolution(sorted);

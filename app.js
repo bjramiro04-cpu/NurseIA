@@ -1,7 +1,7 @@
 // ────────────────────────────────────────────────────────────────
 // 1. BASE DE DATOS CLÍNICA NANDA
 // ────────────────────────────────────────────────────────────────
-const baseDeDatosClinica = [
+const baseDeDatosClinica = Array.isArray(window.NANDA) && window.NANDA.length ? window.NANDA : [
   { diagnostico:"Patrón respiratorio ineficaz",codigo:"00032",dominio:"Dominio 4: Actividad/Reposo",prioridad:"Alta",abcde:"A-B",palabras_clave:["disnea","taquipnea","musculos accesorios","cianosis","respiracion superficial","saturacion baja","tos ineficaz","satura bajo","falta de aire","agitado"],rc:"Obstrucción de vías aéreas, fatiga muscular, ansiedad, secreciones",mp:"Disnea, taquipnea, uso de músculos accesorios, cianosis, respiración superficial, saturación baja, tos ineficaz",evolucion_es:"Paciente presenta alteración del patrón respiratorio evidenciado por disnea y taquipnea. Se observa uso de musculatura accesoria y respiración superficial, acompañado de descenso en la saturación de oxígeno basal y cianosis distal. Se procede a la monitorización continua y optimización de la oxigenoterapia.",evolucion_en:"Patient presents alteration of the respiratory pattern evidenced by dyspnea and tachypnea. Use of accessory muscles and shallow breathing are observed, accompanied by a decrease in baseline oxygen saturation and distal cyanosis. Continuous monitoring and optimization of oxygen therapy are initiated."},
   { diagnostico:"Ansiedad",codigo:"00146",dominio:"Dominio 9: Afrontamiento/Tolerancia al estrés",prioridad:"Media",abcde:"C-D-E",palabras_clave:["preocupacion excesiva","inquietud","tension muscular","insomnio","irritabilidad","miedo","taquicardia","sudoracion","ansioso","nervioso","ansiedad"],rc:"Estrés, hospitalización, miedo, incertidumbre, dolor",mp:"Preocupación excesiva, inquietud, tensión muscular, insomnio, irritabilidad, miedo, taquicardia, sudoración",evolucion_es:"Se observa al paciente con signos evidentes de ansiedad, manifestando verbalmente preocupación excesiva y miedo respecto a su estado de salud. Presenta inquietud motora, tensión muscular difusa, sudoración y taquicardia reactiva. Se brinda contención emocional y entorno seguro.",evolucion_en:"The patient is observed with clear signs of anxiety, verbally expressing excessive concern and fear regarding their health status. Motor restlessness, diffuse muscle tension, sweating, and reactive tachycardia are present. Emotional support and a safe environment are provided."},
   { diagnostico:"Deterioro de la integridad cutánea",codigo:"00046",dominio:"Dominio 11: Seguridad/Protección",prioridad:"Media",abcde:"D-E",palabras_clave:["ulceras","heridas","eritema","excoriacion","secrecion","piel fragil","presion prolongada","edema","escoriacion","ulcera","llaga","escara","herida"],rc:"Presión prolongada, inmovilidad, humedad, mala nutrición",mp:"Úlceras, heridas, eritema, excoriación, secreción, piel frágil, presión prolongada, edema",evolucion_es:"A la valoración física se evidencia deterioro de la integridad cutánea con presencia de eritema que no blanquea a la presión, excoriaciones y úlceras por presión en zonas de declive asociadas a inmovilidad prolongada. Se realizan curaciones según protocolo y cambios posturales.",evolucion_en:"Physical assessment reveals impaired skin integrity with erythema that does not blanch under pressure, excoriations, and pressure ulcers in dependency areas associated with prolonged immobility. Wound dressings are performed according to protocol along with postural changes."},
@@ -127,6 +127,15 @@ function prioColor(p) {
   return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
 }
 
+function getNandaLink(code, title) {
+  try {
+    const q = encodeURIComponent(`NANDA ${code} ${title}`);
+    return `https://www.google.com/search?q=${q}`;
+  } catch (e) {
+    return 'https://www.nanda.org/';
+  }
+}
+
 // ────────────────────────────────────────────────────────────────
 // 8. ANALYSIS ENGINE
 // ────────────────────────────────────────────────────────────────
@@ -147,9 +156,11 @@ function analyzeEvolution() {
     document.getElementById('loadingIcon').classList.add('hidden');
     document.getElementById('btnText').textContent = 'Analizar';
 
-    const encontrados = baseDeDatosClinica.filter(item =>
-      item.palabras_clave.some(kw => cleanText.includes(limpiarAcentos(kw)))
-    );
+    const encontrados = (window.triageLogic && typeof window.triageLogic.findMatchingDiagnostics === 'function')
+      ? window.triageLogic.findMatchingDiagnostics(rawText, baseDeDatosClinica)
+      : baseDeDatosClinica.filter(item =>
+          item.palabras_clave.some(kw => cleanText.includes(limpiarAcentos(kw)))
+        );
 
     if (!encontrados.length) {
       alert('No se detectaron patrones clínicos. Describí más signos o síntomas específicos.');
@@ -169,6 +180,7 @@ function analyzeEvolution() {
       const circumference = 2 * Math.PI * 15.5;
       const offset = circumference - (circumference * pct / 100);
 
+      const nandaUrl = getNandaLink(diag.codigo, diag.diagnostico);
       container.insertAdjacentHTML('beforeend', `
         <div class="diag-card bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 hover:shadow-md hover:border-iris-200 dark:hover:border-iris-700 transition-all">
           <div class="flex items-start justify-between gap-3">
@@ -177,7 +189,7 @@ function analyzeEvolution() {
                 <span class="text-iris-700 dark:text-iris-300 text-xs font-bold">${i+1}</span>
               </div>
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-semibold text-slate-900 dark:text-white leading-snug">${diag.diagnostico}</h4>
+                <h4 class="text-sm font-semibold text-slate-900 dark:text-white leading-snug"><a href="${nandaUrl}" target="_blank" rel="noopener noreferrer">${diag.diagnostico}</a></h4>
                 <div class="flex flex-wrap items-center gap-2 mt-1.5">
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium border ${prioColor(diag.prioridad)}">${diag.prioridad}</span>
                   <span class="text-xs px-2 py-0.5 rounded-full font-medium ${pillClass(diag.abcde)}">ABCDE: ${diag.abcde}</span>
@@ -517,7 +529,13 @@ function showCamaDetail(camaId) {
 
   const nandaContainer = document.getElementById('camaDetailNANDA');
   nandaContainer.innerHTML = (cama.nanda || []).length
-    ? (cama.nanda || []).map(n => `<div class="text-xs px-2 py-1 bg-iris-50 dark:bg-iris-900/20 text-iris-700 dark:text-iris-300 rounded-lg border border-iris-100 dark:border-iris-800">${n}</div>`).join('')
+    ? (cama.nanda || []).map(n => {
+        const parts = String(n).split(' ');
+        const code = parts[0] && /\d{3,}/.test(parts[0]) ? parts[0] : '';
+        const title = parts.slice(1).join(' ') || n;
+        const url = code ? getNandaLink(code, title) : getNandaLink('', n);
+        return `<div class="text-xs px-2 py-1 bg-iris-50 dark:bg-iris-900/20 text-iris-700 dark:text-iris-300 rounded-lg border border-iris-100 dark:border-iris-800"><a href="${url}" target="_blank" rel="noopener noreferrer">${n}</a></div>`;
+      }).join('')
     : '<div class="text-xs text-slate-400 italic">Sin alertas activas.</div>';
 
   panel.classList.remove('hidden');
@@ -719,3 +737,31 @@ function expandHistory(id) {
   showTab('analisis');
   document.getElementById('resultsSection').scrollIntoView({ behavior:'smooth' });
 }
+
+// Exponer API global `window.nurseIA` para handlers en HTML y componentes
+window.nurseIA = window.nurseIA || {};
+Object.assign(window.nurseIA, {
+  toggleDark: toggleDarkMode,
+  toggleLang: toggleLanguage,
+  toggleSidebar: toggleSidebar,
+  showTab: showTab,
+  clearAnalysis: clearAll,
+  analyze: analyzeEvolution,
+  saveAnalysis: saveResults,
+  copyEvolution: copyEvolution,
+  quickPrompt: quickPrompt,
+  sendChat: sendChat,
+  clearHistory: clearHistory,
+  restoreHistory: expandHistory,
+  deleteHistoryEntry: deleteHistory,
+  copyHistoryEntry: (id) => {
+    const entry = history.find(e => e.id == id);
+    if (entry) navigator.clipboard?.writeText(entry.text).then(() => showTriageToast('Evolución copiada'));
+  },
+  closeCamaDetail: () => {
+    document.getElementById('camaDetailPanel')?.classList.add('hidden');
+    document.querySelectorAll('.cama').forEach(el => el.classList.remove('ring-2','ring-violet-400'));
+    selectedCamaId = null;
+  },
+  saveNota: guardarNota
+});

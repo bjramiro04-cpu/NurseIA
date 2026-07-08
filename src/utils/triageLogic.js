@@ -62,11 +62,16 @@ function mapPriorityToState(priority) {
   }
 }
 
-function buildBedAssessmentUpdate(assessmentText, bed = {}, diagnostics = BASE_DIAGNOSTICS) {
+function findMatchingDiagnostics(assessmentText, diagnostics = BASE_DIAGNOSTICS) {
   const cleanText = normalizeText(assessmentText || '');
-  const matches = diagnostics.filter(item =>
+  return diagnostics.filter(item =>
     item.palabras_clave.some(keyword => cleanText.includes(normalizeText(keyword)))
   );
+}
+
+function buildBedAssessmentUpdate(assessmentText, bed = {}, diagnostics = BASE_DIAGNOSTICS) {
+  const cleanText = normalizeText(assessmentText || '');
+  const matches = findMatchingDiagnostics(cleanText, diagnostics);
 
   if (!matches.length) {
     return {
@@ -100,6 +105,7 @@ function buildBedAssessmentUpdate(assessmentText, bed = {}, diagnostics = BASE_D
   return {
     BASE_DIAGNOSTICS,
     buildBedAssessmentUpdate,
+    findMatchingDiagnostics,
     mapPriorityToState
   };
 });

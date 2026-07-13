@@ -3,7 +3,7 @@
  * Asistente IA: chat conectado a Claude API para consultas clínicas.
  */
 
-import { markdownToHtml } from "../utils/helpers.js";
+import { markdownToHtml } from "../utils/helpers.js?v=2";
 
 // ── Estado local del chat ────────────────────────────────────────
 let chatHistory = [];

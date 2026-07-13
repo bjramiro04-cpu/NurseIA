@@ -9,14 +9,7 @@
  * Actualizado: 2026
  */
 
-(function (root, factory) {
-  const api = factory();
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = api;
-  }
-  root.NANDA = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  return [
+const NANDA = [
 
   // ══════════════════════════════════════════════════════════════
   //  DOMINIO A-B — VÍA AÉREA / VENTILACIÓN
@@ -1405,4 +1398,4 @@
   },
 
 ];
-});
+export { NANDA };

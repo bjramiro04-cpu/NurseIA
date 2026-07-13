@@ -18,15 +18,18 @@ export function renderSidebar() {
     >
       <!-- Logo -->
       <div class="flex items-center gap-3 px-5 h-16 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-        <div class="w-8 h-8 bg-violet-700 rounded-lg flex items-center justify-center flex-shrink-0">
-          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="w-9 h-9 bg-white/90 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ring-1 ring-violet-200">
+          <svg class="w-5 h-5 text-violet-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
             <path stroke-linecap="round" stroke-linejoin="round"
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0
-              00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              d="M12 3c2.2 2.4 3.5 4.4 3.5 6.8A3.5 3.5 0 0112 13.3a3.5 3.5 0 01-3.5-3.5C8.5 7.4 9.8 5.4 12 3z"/>
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M6 14c1.2 1.7 2.8 2.6 6 2.6s4.8-.9 6-2.6"/>
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M8 17.5c1.2.8 2.3 1.2 4 1.2s2.8-.4 4-1.2"/>
           </svg>
         </div>
-        <span id="sideLogoText" class="font-serif text-xl font-semibold sidebar-label">
-          <span class="text-violet-600">nurse</span><span class="dark:text-white">IA</span>
+        <span id="sideLogoText" class="font-serif text-xl font-semibold sidebar-label tracking-wide">
+          <span class="text-white">Nurse</span><span class="text-violet-100"> IA</span>
         </span>
       </div>
 

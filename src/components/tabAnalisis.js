@@ -1,6 +1,10 @@
 /**
  * nurseIA — src/components/tabAnalisis.js
- * Módulo de Análisis Clínico: detección NANDA, ABCDE, evolución generada.
+ * Módulo de Análisis Clínico v3.0
+ * - Campos de paciente (nombre, edad, cama)
+ * - Motor NANDA con matching tolerante
+ * - Evolución PAC personalizada por IA (Claude API)
+ * - Fallback a evoluciones estáticas si no hay conexión
  */
 
 import { NANDA } from "../data/nanda.js?v=2";
@@ -19,32 +23,85 @@ import {
 } from "../utils/helpers.js?v=2";
 
 // ── Estado local ────────────────────────────────────────────────
-let isSpanish = true;
+let isSpanish   = true;
 let lastResults = null;
 
-// ── HTML del tab ────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// HTML DEL TAB
+// ══════════════════════════════════════════════════════════════════
 export function renderTabAnalisis() {
   return `
     <div id="tab-analisis" class="fade-in p-6 max-w-3xl mx-auto space-y-6">
 
-      <!-- Tarjeta de input -->
-      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div class="px-6 pt-6 pb-3">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-            Descripción clínica del paciente
-          </label>
-          <textarea
-            id="evolutionText"
-            rows="7"
-            class="w-full px-4 py-3 text-sm text-slate-700 dark:text-slate-200
-                   bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700
-                   rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-violet-500
-                   focus:border-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500
-                   transition-all"
-            placeholder="Describí el estado actual del paciente: signos vitales, síntomas, observaciones clínicas, medicación actual..."
-          ></textarea>
+      <!-- ── Tarjeta de input ── -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" style="box-shadow: var(--shadow-md)">
+        <div class="px-6 pt-6 pb-3 space-y-4">
+
+          <!-- Datos del paciente (opcionales) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+              Datos del paciente <span class="font-normal normal-case text-slate-400">(opcional — personalizan la evolución)</span>
+            </label>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Nombre / Apellido</label>
+                <input
+                  type="text"
+                  id="pacienteNombre"
+                  class="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200
+                         bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700
+                         rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500
+                         focus:border-transparent transition-all placeholder:text-slate-400"
+                  placeholder="Ej: García, Roberto"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Edad</label>
+                <input
+                  type="number"
+                  id="pacienteEdad"
+                  min="0" max="120"
+                  class="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200
+                         bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700
+                         rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500
+                         focus:border-transparent transition-all placeholder:text-slate-400"
+                  placeholder="Ej: 74"
+                />
+              </div>
+              <div>
+                <label class="text-xs text-slate-500 dark:text-slate-400 block mb-1">Cama / Habitación</label>
+                <input
+                  type="text"
+                  id="pacienteCama"
+                  class="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200
+                         bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700
+                         rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500
+                         focus:border-transparent transition-all placeholder:text-slate-400"
+                  placeholder="Ej: 204B"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Descripción clínica -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+              Descripción clínica
+            </label>
+            <textarea
+              id="evolutionText"
+              rows="7"
+              class="w-full px-4 py-3 text-sm text-slate-700 dark:text-slate-200
+                     bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700
+                     rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-violet-500
+                     focus:border-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500
+                     transition-all"
+              placeholder="Describí el estado actual del paciente: signos vitales (TA, FC, Sat, T°), síntomas, observaciones clínicas, medicación actual..."
+            ></textarea>
+          </div>
         </div>
 
+        <!-- Footer con contador y botones -->
         <div class="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800">
           <span class="text-xs text-slate-400">
             <span id="charCount">0</span> caracteres
@@ -60,10 +117,7 @@ export function renderTabAnalisis() {
             <button
               id="analyzeBtn"
               onclick="window.nurseIA.analyze()"
-              class="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700
-                     text-white text-sm font-medium rounded-xl transition-all
-                     focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2
-                     dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="btn-nurseia text-sm"
             >
               <svg id="analyzeIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -82,7 +136,7 @@ export function renderTabAnalisis() {
         </div>
       </div>
 
-      <!-- Resultados (oculto hasta analizar) -->
+      <!-- ── Sección de resultados (oculta hasta analizar) ── -->
       <div id="resultsSection" class="hidden space-y-5">
 
         <!-- Alerta ABCDE crítica -->
@@ -107,20 +161,26 @@ export function renderTabAnalisis() {
         <div>
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Diagnósticos NANDA · <span id="diagCount">0</span> encontrados
+              Diagnósticos NANDA detectados · <span id="diagCount">0</span> encontrados
             </h3>
           </div>
           <div id="diagnosesContainer" class="space-y-3"></div>
         </div>
 
         <!-- Evolución generada -->
-        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden" style="box-shadow: var(--shadow-md)">
           <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <svg class="w-4 h-4 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
               </svg>
-              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">Evolución generada</span>
+              <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">Evolución PAC</span>
+              <span id="aiEvolutionBadge" class="hidden items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+                Personalizada por IA
+              </span>
             </div>
             <div class="flex items-center gap-2">
               <button
@@ -153,9 +213,11 @@ export function renderTabAnalisis() {
               </button>
             </div>
           </div>
+
+          <!-- Contenido de la evolución -->
           <div
             id="generatedEvolution"
-            class="px-5 py-4 text-slate-700 dark:text-slate-300 leading-relaxed text-sm whitespace-pre-wrap"
+            class="px-5 py-4 text-slate-700 dark:text-slate-300 leading-relaxed text-sm"
           ></div>
         </div>
 
@@ -164,7 +226,9 @@ export function renderTabAnalisis() {
   `;
 }
 
-// ── Inicializar listeners ────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════════
 export function initTabAnalisis() {
   const ta = document.getElementById("evolutionText");
   if (ta) {
@@ -174,8 +238,10 @@ export function initTabAnalisis() {
   }
 }
 
-// ── Motor de análisis NANDA ──────────────────────────────────────
-export function analyze() {
+// ══════════════════════════════════════════════════════════════════
+// MOTOR DE ANÁLISIS PRINCIPAL
+// ══════════════════════════════════════════════════════════════════
+export async function analyze() {
   const ta = document.getElementById("evolutionText");
   const rawText = ta?.value.trim();
   if (!rawText) {
@@ -185,45 +251,49 @@ export function analyze() {
 
   const cleanText = normalizeText(rawText);
 
-  // Animación de carga
+  // Spinner visual — delay corto para que se vea el cambio
   setLoading(true);
+  await new Promise(resolve => setTimeout(resolve, 500));
+  setLoading(false);
 
-  // Simulamos un pequeño delay para la UX (el análisis es instantáneo)
-  setTimeout(() => {
-    setLoading(false);
+  // ── 1. Detección NANDA (síncrono, instantáneo) ────────────────
+  const found = NANDA.filter(d =>
+    d.palabras_clave.some(kw => keywordMatches(kw, cleanText))
+  );
 
-    // Filtrar diagnósticos usando motor de matching tolerante
-    const found = NANDA.filter(d =>
-      d.palabras_clave.some(kw => keywordMatches(kw, cleanText))
-    );
+  if (!found.length) {
+    showToast("No se detectaron patrones clínicos. Describí más síntomas específicos.", "warn");
+    return;
+  }
 
-    if (!found.length) {
-      showToast("No se detectaron patrones clínicos. Describí más síntomas específicos.", "warn");
-      return;
-    }
+  const sorted = sortByPriority(found, cleanText);
+  lastResults = { sorted, rawText, cleanText, evolucionTexto: "" };
 
-    const sorted = sortByPriority(found, cleanText);
-    lastResults = { sorted, rawText, cleanText };
+  // ── 2. Renderizar tarjetas NANDA y alerta ABCDE (instantáneo) ─
+  renderDiagnoses(sorted, cleanText);
+  renderABCDEAlert(sorted);
 
-    renderDiagnoses(sorted, cleanText);
-    renderEvolution(sorted);
-    renderABCDEAlert(sorted);
+  // ── 3. Mostrar la sección de resultados con las tarjetas ya ────
+  const results = document.getElementById("resultsSection");
+  results.classList.remove("hidden");
+  results.scrollIntoView({ behavior: "smooth", block: "start" });
 
-    const results = document.getElementById("resultsSection");
-    results.classList.remove("hidden");
-    results.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 800);
+  // ── 4. Generar evolución PAC con IA (async, 3-5 seg) ──────────
+  // Las tarjetas NANDA ya son visibles mientras la IA trabaja
+  await generateEvolutionWithAI(sorted, rawText);
 }
 
-// ── Renderiza tarjetas NANDA ────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// TARJETAS NANDA
+// ══════════════════════════════════════════════════════════════════
 function renderDiagnoses(sorted, cleanText) {
   document.getElementById("diagCount").textContent = sorted.length;
   const container = document.getElementById("diagnosesContainer");
   container.innerHTML = "";
 
   sorted.forEach((diag, i) => {
-    const pct = calcMatchPercent(diag, cleanText);
-    const circ = 2 * Math.PI * 15.5;
+    const pct    = calcMatchPercent(diag, cleanText);
+    const circ   = 2 * Math.PI * 15.5;
     const offset = circ - (circ * pct / 100);
 
     const card = document.createElement("div");
@@ -244,7 +314,6 @@ function renderDiagnoses(sorted, cleanText) {
             </div>
           </div>
         </div>
-
         <!-- Círculo de coincidencia -->
         <div class="relative w-11 h-11 flex-shrink-0">
           <svg class="w-11 h-11 -rotate-90" viewBox="0 0 36 36">
@@ -256,7 +325,6 @@ function renderDiagnoses(sorted, cleanText) {
           <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-violet-600 dark:text-violet-400">${pct}%</span>
         </div>
       </div>
-
       <div class="mt-3 space-y-1.5 pl-10">
         <p class="text-xs text-slate-600 dark:text-slate-400">
           <span class="font-semibold text-slate-700 dark:text-slate-300">R/C:</span> ${diag.rc}
@@ -274,14 +342,9 @@ function renderDiagnoses(sorted, cleanText) {
   });
 }
 
-// ── Evolución de texto unificada ────────────────────────────────
-function renderEvolution(sorted) {
-  const key = isSpanish ? "evolucion_es" : "evolucion_en";
-  const text = sorted.map(d => d[key]).join("\n\n");
-  document.getElementById("generatedEvolution").textContent = text;
-}
-
-// ── Alerta ABCDE jerárquica ──────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// ALERTA ABCDE
+// ══════════════════════════════════════════════════════════════════
 function renderABCDEAlert(sorted) {
   const alertBox = document.getElementById("priorityAlert");
 
@@ -297,34 +360,177 @@ function renderABCDEAlert(sorted) {
 
   if (isAB || isC || isD) {
     const cat = isAB ? "A-B" : isC ? "C" : "D";
-    document.getElementById("abcdeBadge").textContent = cat;
-    document.getElementById("abcdeText").textContent = messages[cat];
+    document.getElementById("abcdeBadge").textContent  = cat;
+    document.getElementById("abcdeText").textContent   = messages[cat];
     alertBox.classList.remove("hidden");
   } else {
     alertBox.classList.add("hidden");
   }
 }
 
-// ── Acciones públicas ────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// EVOLUCIÓN PAC PERSONALIZADA CON IA
+// ══════════════════════════════════════════════════════════════════
+async function generateEvolutionWithAI(sorted, rawText) {
+  const evEl  = document.getElementById("generatedEvolution");
+  const badge = document.getElementById("aiEvolutionBadge");
+
+  // Datos del paciente (opcionales)
+  const nombre = document.getElementById("pacienteNombre")?.value?.trim() || "";
+  const edad   = document.getElementById("pacienteEdad")?.value?.trim()   || "";
+  const cama   = document.getElementById("pacienteCama")?.value?.trim()   || "";
+
+  // Construir referencia del paciente
+  const refPaciente = nombre
+    ? `${nombre}${edad ? ", " + edad + " años" : ""}${cama ? " (Cama " + cama + ")" : ""}`
+    : edad
+      ? `Paciente de ${edad} años${cama ? " (Cama " + cama + ")" : ""}`
+      : "el/la paciente";
+
+  // Diagnósticos para el prompt (máximo 3, los más prioritarios)
+  const diagsParaPrompt = sorted.slice(0, 3);
+  const diagsList = diagsParaPrompt.map((d, i) =>
+    `${i+1}. ${d.diagnostico} (NANDA ${d.codigo})\n   Prioridad: ${d.prioridad} | ABCDE: ${d.abcde}\n   R/C sugerido: ${d.rc}\n   M/P sugerido: ${d.mp}`
+  ).join("\n");
+
+  // ── Skeleton loading ─────────────────────────────────────────
+  evEl.innerHTML = `
+    <div class="space-y-2.5">
+      <div class="h-3 rounded animate-pulse" style="background: var(--n-100); width: 100%"></div>
+      <div class="h-3 rounded animate-pulse" style="background: var(--n-100); width: 85%"></div>
+      <div class="h-3 rounded animate-pulse" style="background: var(--n-100); width: 95%"></div>
+      <div class="h-3 rounded animate-pulse" style="background: var(--n-100); width: 70%"></div>
+      <div class="mt-3 h-3 rounded animate-pulse" style="background: var(--n-100); width: 100%"></div>
+      <div class="h-3 rounded animate-pulse" style="background: var(--n-100); width: 80%"></div>
+      <div class="h-3 rounded animate-pulse" style="background: var(--n-100); width: 90%"></div>
+    </div>
+    <p class="text-xs mt-4 flex items-center gap-1.5" style="color: var(--n-500)">
+      <svg class="w-3.5 h-3.5 spinner" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+      </svg>
+      Generando evolución PAC personalizada con IA...
+    </p>
+  `;
+
+  // ── System prompt clínico argentino ──────────────────────────
+  const SYSTEM = `Sos nurseIA, asistente clínico especializado en enfermería argentina.
+Redactás evoluciones de enfermería en formato PAC (Proceso de Atención de Cuidados).
+
+REGLAS ABSOLUTAS:
+1. Usá ÚNICAMENTE los datos que aparecen en la descripción del enfermero. NUNCA inventes síntomas, causas, antecedentes ni contextos que no estén escritos.
+2. El R/C (relación causal) debe basarse SOLO en lo que se menciona. Si no hay causa clara, escribí "r/c causa en estudio" o usá la causa más obvia del texto.
+3. Usá el nombre real del paciente si se proporcionó. Nunca uses "el paciente" como pronombre — usá el nombre o "el/la paciente".
+4. Lenguaje mixto profesional: "El paciente refiere..." / "La paciente refiere..." para lo subjetivo. "Se constata...", "Se administra...", "Se monitoriza...", "Se posiciona..." para las intervenciones del enfermero.
+5. Formato EXACTO — 5 secciones en este orden, cada una en su propia línea:
+
+VALORACIÓN: [descripción clínica usando los datos reales del texto]
+DIAGNÓSTICO ENFERMERO: [Nombre diagnóstico] (NANDA XXXXX) r/c [causa real del texto] m/p [manifestaciones reales del texto]
+PLANIFICACIÓN (NOC): [objetivo medible y realista para este turno, usando los datos reales]
+INTERVENCIÓN (NIC): [acciones concretas de enfermería, en primera persona del plural "Se..."]
+EVALUACIÓN: [cómo y cuándo se evaluará la respuesta al tratamiento]
+
+6. Si hay más de un diagnóstico, escribí una sección PAC completa por diagnóstico, separadas con esta línea exacta: ---
+7. Máximo 3 diagnósticos. Priorizá los de mayor riesgo para la vida.
+8. Nunca uses markdown (no asteriscos, no #). Solo texto plano con las etiquetas de sección.
+9. Longitud: cada sección 2-3 oraciones. Conciso y clínico.`;
+
+  const USER = `DESCRIPCIÓN DEL ENFERMERO:
+"${rawText}"
+
+REFERENCIA DEL PACIENTE: ${refPaciente}
+
+DIAGNÓSTICOS NANDA DETECTADOS (usá solo los relevantes al texto):
+${diagsList}
+
+Generá la evolución PAC personalizada usando EXCLUSIVAMENTE los datos de la descripción del enfermero.`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model:      "claude-sonnet-4-6",
+        max_tokens: 1200,
+        system:     SYSTEM,
+        messages:   [{ role: "user", content: USER }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.error?.message || "Error API");
+
+    const text = data.content?.map(b => b.text || "").join("") || "";
+
+    // Guardar texto plano para copiar/guardar
+    if (lastResults) lastResults.evolucionTexto = text;
+
+    // Formatear con colores por sección PAC
+    const formatted = text
+      .replace(/^(VALORACIÓN:)/gm,
+        '<strong class="text-slate-800 dark:text-slate-100 block mt-3 mb-1">$1</strong>')
+      .replace(/^(DIAGNÓSTICO ENFERMERO:)/gm,
+        '<strong class="block mt-3 mb-1" style="color: var(--n-600)">$1</strong>')
+      .replace(/^(PLANIFICACIÓN \(NOC\):)/gm,
+        '<strong class="text-blue-700 dark:text-blue-300 block mt-3 mb-1">$1</strong>')
+      .replace(/^(INTERVENCIÓN \(NIC\):)/gm,
+        '<strong class="text-green-700 dark:text-green-300 block mt-3 mb-1">$1</strong>')
+      .replace(/^(EVALUACIÓN:)/gm,
+        '<strong class="text-amber-700 dark:text-amber-300 block mt-3 mb-1">$1</strong>')
+      .replace(/^---$/gm,
+        '<hr class="border-slate-200 dark:border-slate-700 my-5"/>')
+      .replace(/\n/g, '<br>');
+
+    evEl.innerHTML = `<div class="pt-1">${formatted}</div>`;
+
+    // Mostrar badge "Personalizada por IA"
+    if (badge) {
+      badge.classList.remove("hidden");
+      badge.classList.add("inline-flex");
+    }
+
+  } catch (err) {
+    // ── Fallback: evoluciones estáticas de la base NANDA ────────
+    console.warn("nurseIA IA fallback:", err.message);
+
+    const key      = isSpanish ? "evolucion_es" : "evolucion_en";
+    const fallback = sorted.slice(0, 3).map(d => d[key]).join("\n\n---\n\n");
+
+    evEl.textContent = fallback;
+    if (lastResults) lastResults.evolucionTexto = fallback;
+
+    showToast("Sin conexión a la IA — mostrando evolución estándar", "warn");
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ACCIONES PÚBLICAS
+// ══════════════════════════════════════════════════════════════════
 export function clearAnalysis() {
-  const ta = document.getElementById("evolutionText");
-  if (ta) ta.value = "";
+  ["evolutionText","pacienteNombre","pacienteEdad","pacienteCama"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
   const cc = document.getElementById("charCount");
   if (cc) cc.textContent = "0";
   document.getElementById("resultsSection")?.classList.add("hidden");
   document.getElementById("priorityAlert")?.classList.add("hidden");
+  const badge = document.getElementById("aiEvolutionBadge");
+  if (badge) { badge.classList.add("hidden"); badge.classList.remove("inline-flex"); }
   lastResults = null;
 }
 
 export function copyEvolution() {
-  const text = document.getElementById("generatedEvolution")?.textContent;
+  // Usar texto plano guardado para evitar copiar HTML
+  const text = lastResults?.evolucionTexto
+    || document.getElementById("generatedEvolution")?.innerText
+    || document.getElementById("generatedEvolution")?.textContent;
   if (!text) return;
 
   copyToClipboard(text, () => {
     document.getElementById("copyIcon")?.classList.add("hidden");
     document.getElementById("checkIcon")?.classList.remove("hidden");
     document.getElementById("copyText").textContent = "¡Copiado!";
-
     setTimeout(() => {
       document.getElementById("copyIcon")?.classList.remove("hidden");
       document.getElementById("checkIcon")?.classList.add("hidden");
@@ -334,7 +540,9 @@ export function copyEvolution() {
 }
 
 export function saveAnalysis() {
-  const text = document.getElementById("generatedEvolution")?.textContent;
+  const text = lastResults?.evolucionTexto
+    || document.getElementById("generatedEvolution")?.innerText
+    || document.getElementById("generatedEvolution")?.textContent;
   if (!text) return;
 
   const history = loadFromStorage("nurseIA_history", []);
@@ -350,10 +558,15 @@ export function saveAnalysis() {
 
 export function setLanguage(spanish) {
   isSpanish = spanish;
-  if (lastResults) renderEvolution(lastResults.sorted);
+  // Si hay resultados activos, regenerar con el nuevo idioma
+  if (lastResults?.sorted && lastResults?.rawText) {
+    generateEvolutionWithAI(lastResults.sorted, lastResults.rawText);
+  }
 }
 
-// ── Loading state ────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// HELPERS INTERNOS
+// ══════════════════════════════════════════════════════════════════
 function setLoading(loading) {
   const btn  = document.getElementById("analyzeBtn");
   const icon = document.getElementById("analyzeIcon");
@@ -361,12 +574,11 @@ function setLoading(loading) {
   const txt  = document.getElementById("btnText");
   if (!btn) return;
   btn.disabled = loading;
-  icon.classList.toggle("hidden", loading);
-  spin.classList.toggle("hidden", !loading);
-  txt.textContent = loading ? "Analizando..." : "Analizar";
+  icon?.classList.toggle("hidden", loading);
+  spin?.classList.toggle("hidden", !loading);
+  if (txt) txt.textContent = loading ? "Analizando..." : "Analizar";
 }
 
-// ── Toast notifications ──────────────────────────────────────────
 function showToast(msg, type = "info") {
   const colors = {
     success: "bg-green-600",

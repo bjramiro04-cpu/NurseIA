@@ -1,20 +1,12 @@
 "use client";
 
-import type { NandaDiagnosis } from "@/types/nanda";
-import { calcMatchPercent, pillClass, priorityBadgeClass } from "@/services/nandaEngine";
+import type { AiNandaDiagnosis } from "@/types/analysis";
+import { pillClass, priorityBadgeClass } from "@/services/nandaEngine";
 
 const CIRCUMFERENCE = 2 * Math.PI * 15.5;
 
-export default function DiagnosisCard({
-  diag,
-  index,
-  cleanText,
-}: {
-  diag: NandaDiagnosis;
-  index: number;
-  cleanText: string;
-}) {
-  const pct = calcMatchPercent(diag, cleanText);
+export default function DiagnosisCard({ diag, index }: { diag: AiNandaDiagnosis; index: number }) {
+  const pct = Math.max(0, Math.min(100, Math.round(diag.matchPercent)));
   const offset = CIRCUMFERENCE - (CIRCUMFERENCE * pct) / 100;
 
   return (

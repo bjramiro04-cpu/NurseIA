@@ -1,51 +1,33 @@
-import type { NandaDiagnosis } from "@/types/nanda";
-import type { PatientInfo } from "@/types/analysis";
+import type { ChatMessage } from "@/types/chat";
+import type { AiNandaDiagnosis, PatientInfo } from "@/types/analysis";
 
-interface ApiResponse {
-  text?: string;
-  interactionId?: string;
-  error?: string;
-}
-
-async function postJson(url: string, body: unknown): Promise<ApiResponse> {
+async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
 
-  const data = (await response.json()) as ApiResponse;
+  const data = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(data.error ?? "Error de la API de nurseIA");
 
   return data;
 }
 
 /**
- * Genera la evolución PAC personalizada con IA. Le pega a nuestro propio
- * route handler (`/api/evolution`), que es el único lugar donde se usa la
- * API key de Gemini — nunca se expone en el cliente.
+ * Identifica los diagnósticos NANDA reales y genera la evolución PAC en una
+ * sola llamada. Le pega a `/api/analyze`, que es el único lugar donde se usa
+ * la API key de Gemini — nunca se expone en el cliente.
  */
-export async function generateEvolution(
+export async function analyzeClinicalText(
   rawText: string,
-  diagnoses: NandaDiagnosis[],
   patient: PatientInfo,
-): Promise<string> {
-  const { text } = await postJson("/api/evolution", { rawText, diagnoses, patient });
-  return text ?? "";
+): Promise<{ diagnoses: AiNandaDiagnosis[]; evolutionText: string }> {
+  return postJson("/api/analyze", { rawText, patient });
 }
 
-/**
- * Envía un mensaje del Asistente IA a `/api/chat`. Pasar el `previousInteractionId`
- * de la respuesta anterior continúa la misma conversación (multi-turno stateful
- * del lado de Gemini); omitirlo arranca una conversación nueva.
- */
-export async function sendChatMessage(
-  message: string,
-  previousInteractionId: string | null,
-): Promise<{ text: string; interactionId: string }> {
-  const { text, interactionId } = await postJson("/api/chat", {
-    message,
-    previousInteractionId: previousInteractionId ?? undefined,
-  });
-  return { text: text || "No se obtuvo respuesta.", interactionId: interactionId ?? "" };
+/** Envía el historial completo del chat del Asistente IA a `/api/chat` y devuelve la respuesta. */
+export async function sendChatMessage(history: ChatMessage[]): Promise<string> {
+  const { text } = await postJson<{ text: string }>("/api/chat", { history });
+  return text || "No se obtuvo respuesta.";
 }

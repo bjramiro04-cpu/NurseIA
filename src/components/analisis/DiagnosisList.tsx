@@ -1,16 +1,13 @@
 "use client";
 
 import { useAnalysisStore } from "@/hooks/useAnalysisStore";
-import { normalizeText } from "@/services/text";
 import DiagnosisCard from "./DiagnosisCard";
 
 export default function DiagnosisList() {
   const sorted = useAnalysisStore((s) => s.sorted);
   const diagCount = useAnalysisStore((s) => s.diagCount);
-  const rawText = useAnalysisStore((s) => s.rawText);
 
   if (!sorted) return null;
-  const cleanText = normalizeText(rawText);
 
   return (
     <div>
@@ -21,7 +18,7 @@ export default function DiagnosisList() {
       </div>
       <div className="space-y-3">
         {sorted.map((diag, i) => (
-          <DiagnosisCard key={diag.codigo} diag={diag} index={i} cleanText={cleanText} />
+          <DiagnosisCard key={diag.codigo} diag={diag} index={i} />
         ))}
       </div>
     </div>

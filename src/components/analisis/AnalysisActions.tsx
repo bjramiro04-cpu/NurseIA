@@ -1,7 +1,6 @@
 "use client";
 
 import { useAnalysisStore } from "@/hooks/useAnalysisStore";
-import { useUiStore } from "@/hooks/useUiStore";
 import { BrainIcon, SpinnerIcon } from "@/components/icons/Icons";
 
 export default function AnalysisActions() {
@@ -9,7 +8,6 @@ export default function AnalysisActions() {
   const loading = useAnalysisStore((s) => s.loading);
   const analyze = useAnalysisStore((s) => s.analyze);
   const clear = useAnalysisStore((s) => s.clear);
-  const isSpanish = useUiStore((s) => s.isSpanish);
 
   return (
     <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-6 py-4 dark:border-slate-800 dark:bg-slate-950">
@@ -21,7 +19,7 @@ export default function AnalysisActions() {
         >
           Limpiar
         </button>
-        <button onClick={() => analyze(isSpanish)} disabled={loading} className="btn-nurseia text-sm">
+        <button onClick={() => analyze()} disabled={loading} className="btn-nurseia text-sm">
           {loading ? <SpinnerIcon /> : <BrainIcon className="h-4 w-4" />}
           <span>{loading ? "Analizando..." : "Analizar"}</span>
         </button>

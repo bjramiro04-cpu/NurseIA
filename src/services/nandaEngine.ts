@@ -80,7 +80,7 @@ const ABCDE_ALERT_MESSAGES: Record<AbcdeAlertCategory, string> = {
 };
 
 /** Determina si hay una alerta ABCDE crítica entre los diagnósticos de alta prioridad. */
-export function detectAbcdeAlert(sorted: NandaDiagnosis[]): AbcdeAlert | null {
+export function detectAbcdeAlert(sorted: { abcde: Abcde; prioridad: Prioridad }[]): AbcdeAlert | null {
   const isAB = sorted.some((d) => ["A-B", "B-C"].includes(d.abcde) && d.prioridad === "Alta");
   const isC = sorted.some(
     (d) => ["C", "C-D", "C-E", "C-D-E"].includes(d.abcde) && d.prioridad === "Alta",

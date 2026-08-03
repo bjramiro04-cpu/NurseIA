@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useAnalysisStore } from "@/hooks/useAnalysisStore";
-import { useUiStore } from "@/hooks/useUiStore";
 import PatientFields from "./PatientFields";
 import ClinicalInput from "./ClinicalInput";
 import AnalysisActions from "./AnalysisActions";
@@ -12,18 +10,6 @@ import EvolutionPanel from "./EvolutionPanel";
 
 export default function AnalisisTab() {
   const showResults = useAnalysisStore((s) => s.showResults);
-  const regenerateEvolution = useAnalysisStore((s) => s.regenerateEvolution);
-  const isSpanish = useUiStore((s) => s.isSpanish);
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    regenerateEvolution(isSpanish);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSpanish]);
 
   return (
     <div className="mx-auto max-w-3xl animate-fade-in space-y-6 p-6">

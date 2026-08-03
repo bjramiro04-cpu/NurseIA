@@ -1,12 +1,9 @@
 import { create } from "zustand";
 import toast from "react-hot-toast";
-import type { NandaDiagnosis } from "@/types/nanda";
-import type { PatientInfo } from "@/types/analysis";
+import type { AiNandaDiagnosis, PatientInfo } from "@/types/analysis";
 import type { HistoryEntry } from "@/types/history";
-import { NANDA } from "@/mocks/nanda";
-import { detectAbcdeAlert, findMatchingDiagnoses, sortByPriority, type AbcdeAlert } from "@/services/nandaEngine";
-import { normalizeText } from "@/services/text";
-import { generateEvolution } from "@/services/aiApi";
+import { detectAbcdeAlert, type AbcdeAlert } from "@/services/nandaEngine";
+import { analyzeClinicalText } from "@/services/aiApi";
 import { useHistoryStore } from "./useHistoryStore";
 
 const EMPTY_PATIENT: PatientInfo = { nombre: "", edad: "", cama: "" };
@@ -15,7 +12,7 @@ interface AnalysisState {
   patient: PatientInfo;
   rawText: string;
   loading: boolean;
-  sorted: NandaDiagnosis[] | null;
+  sorted: AiNandaDiagnosis[] | null;
   diagCount: number;
   abcdeAlert: AbcdeAlert | null;
   evolutionText: string;
@@ -25,36 +22,10 @@ interface AnalysisState {
 
   setPatientField: (field: keyof PatientInfo, value: string) => void;
   setRawText: (text: string) => void;
-  analyze: (isSpanish: boolean) => Promise<void>;
-  regenerateEvolution: (isSpanish: boolean) => Promise<void>;
+  analyze: () => Promise<void>;
   clear: () => void;
   saveToHistory: () => void;
   restoreFromHistory: (entry: HistoryEntry) => void;
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function runAiGeneration(
-  sorted: NandaDiagnosis[],
-  rawText: string,
-  patient: PatientInfo,
-  isSpanish: boolean,
-  set: (partial: Partial<AnalysisState>) => void,
-) {
-  set({ evolutionLoading: true });
-  try {
-    const text = await generateEvolution(rawText, sorted, patient);
-    set({ evolutionText: text, aiGenerated: true, evolutionLoading: false });
-  } catch (err) {
-    console.warn("nurseIA IA fallback:", err instanceof Error ? err.message : err);
-    const key = isSpanish ? "evolucion_es" : "evolucion_en";
-    const fallback = sorted
-      .slice(0, 3)
-      .map((d) => d[key])
-      .join("\n\n---\n\n");
-    set({ evolutionText: fallback, aiGenerated: false, evolutionLoading: false });
-    toast.error("Sin conexión a la IA — mostrando evolución estándar");
-  }
 }
 
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
@@ -74,42 +45,40 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
   setRawText: (rawText) => set({ rawText }),
 
-  analyze: async (isSpanish) => {
+  analyze: async () => {
     const rawText = get().rawText.trim();
     if (!rawText) {
       toast.error("Describí el estado del paciente antes de analizar.");
       return;
     }
 
-    const cleanText = normalizeText(rawText);
+    set({ loading: true, evolutionLoading: true, showResults: false });
 
-    set({ loading: true });
-    await sleep(500);
-    set({ loading: false });
+    try {
+      const { diagnoses, evolutionText } = await analyzeClinicalText(rawText, get().patient);
 
-    const found = findMatchingDiagnoses(NANDA, cleanText);
-    if (!found.length) {
-      toast.error("No se detectaron patrones clínicos. Describí más síntomas específicos.");
-      return;
+      if (!diagnoses.length) {
+        toast.error("No se detectaron patrones clínicos. Describí más síntomas específicos.");
+        set({ loading: false, evolutionLoading: false });
+        return;
+      }
+
+      set({
+        sorted: diagnoses,
+        diagCount: diagnoses.length,
+        abcdeAlert: detectAbcdeAlert(diagnoses),
+        showResults: true,
+        evolutionText,
+        aiGenerated: true,
+        loading: false,
+        evolutionLoading: false,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      console.warn("nurseIA: error consultando a la IA:", message);
+      toast.error("No se pudo contactar a la IA. Verificá tu conexión e intentá de nuevo.");
+      set({ loading: false, evolutionLoading: false });
     }
-
-    const sorted = sortByPriority(found, cleanText);
-    set({
-      sorted,
-      diagCount: sorted.length,
-      abcdeAlert: detectAbcdeAlert(sorted),
-      showResults: true,
-      evolutionText: "",
-      aiGenerated: false,
-    });
-
-    await runAiGeneration(sorted, rawText, get().patient, isSpanish, set);
-  },
-
-  regenerateEvolution: async (isSpanish) => {
-    const { sorted, rawText, patient } = get();
-    if (!sorted || !rawText) return;
-    await runAiGeneration(sorted, rawText, patient, isSpanish, set);
   },
 
   clear: () =>

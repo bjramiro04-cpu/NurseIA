@@ -1,0 +1,163 @@
+import type { Habitacion } from "@/types/triage";
+
+/** Datos de demostración para la primera vez que se abre el mapa de triaje. */
+export function getDefaultTriageData(): Habitacion[] {
+  return [
+    {
+      id: "hab-101",
+      hab: "101",
+      camas: [
+        {
+          id: "101A",
+          nombre: "García, Roberto",
+          estado: "rojo",
+          edad: 78,
+          dx: "Neumonía bilateral",
+          ia: "Fiebre 38.8°C a las 03:20 hs. Inició ceftriaxona IV. Desorientación nocturna.",
+          nota: "",
+          nanda: ["00032 Patrón resp. ineficaz", "00155 Riesgo de caída"],
+        },
+        {
+          id: "101B",
+          nombre: "López, María",
+          estado: "verde",
+          edad: 65,
+          dx: "Post-QX colecistectomía",
+          ia: "Estable. Toleró dieta líquida. Herida sin signos de infección.",
+          nota: "",
+          nanda: ["00093 Fatiga"],
+        },
+      ],
+    },
+    {
+      id: "hab-102",
+      hab: "102",
+      camas: [
+        {
+          id: "102A",
+          nombre: "Martínez, Ana",
+          estado: "naranja",
+          edad: 54,
+          dx: "Fractura de cadera",
+          ia: "Dolor 6/10 al movilizarse. Analgesia a las 06:00 con respuesta parcial.",
+          nota: "",
+          nanda: ["00132 Dolor agudo", "00146 Ansiedad"],
+        },
+        {
+          id: "102B",
+          nombre: "",
+          estado: "vacia",
+          edad: null,
+          dx: "",
+          ia: "",
+          nota: "",
+          nanda: [],
+        },
+      ],
+    },
+    {
+      id: "hab-103",
+      hab: "103",
+      camas: [
+        {
+          id: "103A",
+          nombre: "Rodríguez, Carlos",
+          estado: "verde",
+          edad: 70,
+          dx: "ACV isquémico rehab",
+          ia: "Fisioterapia 40 min. Deambula con andador. Sin novedades neurológicas.",
+          nota: "",
+          nanda: ["00085 Deterioro movilidad"],
+        },
+        {
+          id: "103B",
+          nombre: "Fernández, Laura",
+          estado: "verde",
+          edad: 48,
+          dx: "DBT descompensada",
+          ia: "Glucemias 140-180. Durmió mal. Sin alteraciones clínicas.",
+          nota: "",
+          nanda: ["00179 Riesgo glucemia"],
+        },
+      ],
+    },
+    {
+      id: "hab-104",
+      hab: "104",
+      camas: [
+        {
+          id: "104A",
+          nombre: "Sánchez, Pedro",
+          estado: "rojo",
+          edad: 82,
+          dx: "EPOC exacerbado",
+          ia: "SpO2 88%. Escaló O2 a mascarilla 8L. Secreciones abundantes. No dejar solo.",
+          nota: "",
+          nanda: ["00030 Intercambio gaseoso", "00031 Limpieza vía aérea"],
+        },
+        {
+          id: "104B",
+          nombre: "Torres, Jorge",
+          estado: "naranja",
+          edad: 61,
+          dx: "DBT tipo 1",
+          ia: "Glucemia 280 mg/dL. Corrección con insulina. Recontrol en 2 hs.",
+          nota: "",
+          nanda: ["00179 Riesgo glucemia"],
+        },
+      ],
+    },
+    {
+      id: "hab-105",
+      hab: "105",
+      camas: [
+        {
+          id: "105A",
+          nombre: "",
+          estado: "vacia",
+          edad: null,
+          dx: "",
+          ia: "",
+          nota: "",
+          nanda: [],
+        },
+        {
+          id: "105B",
+          nombre: "Díaz, Elena",
+          estado: "verde",
+          edad: 38,
+          dx: "Anemia ferropénica",
+          ia: "Ingesta mejorada. Completó 70% del almuerzo. Solicita nutricionista.",
+          nota: "",
+          nanda: ["00002 Desequilibrio nutricional"],
+        },
+      ],
+    },
+    {
+      id: "hab-106",
+      hab: "106",
+      camas: [
+        {
+          id: "106A",
+          nombre: "Morales, Verónica",
+          estado: "naranja",
+          edad: 75,
+          dx: "Hipotermia accidental",
+          ia: "T° 35.2°C al ingreso. Manta térmica. Ascenso a 36.1°C. Paciente ansiosa.",
+          nota: "",
+          nanda: ["00006 Hipotermia", "00146 Ansiedad"],
+        },
+        {
+          id: "106B",
+          nombre: "Jiménez, Ricardo",
+          estado: "verde",
+          edad: 55,
+          dx: "HTA controlada",
+          ia: "Alta programada mañana. PA 130/80. Educación al egreso realizada.",
+          nota: "",
+          nanda: ["00155 Riesgo de caída"],
+        },
+      ],
+    },
+  ];
+}

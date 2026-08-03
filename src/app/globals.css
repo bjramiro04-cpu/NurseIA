@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  }
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-brand-200 dark:bg-brand-700;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* Botones de marca */
+  .btn-nurseia {
+    @apply inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white
+      shadow-brand-sm transition-all hover:-translate-y-0.5 hover:shadow-brand-md
+      disabled:pointer-events-none disabled:opacity-50;
+    background-image: linear-gradient(135deg, theme("colors.brand.600"), theme("colors.brand.400"));
+  }
+  .btn-nurseia-outline {
+    @apply inline-flex items-center gap-2 rounded-xl border-2 border-brand-600 px-4 py-2
+      font-semibold text-brand-600 transition-all hover:-translate-y-0.5 hover:bg-brand-50
+      hover:shadow-brand-sm dark:hover:bg-brand-900/20;
+  }
+
+  /* Pastillas ABCDE */
+  .pill-ab,
+  .pill-bc {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
+  }
+  .pill-c,
+  .pill-cd,
+  .pill-cde,
+  .pill-ce {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300;
+  }
+  .pill-d {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300;
+  }
+  .pill-de,
+  .pill-e {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+  }
+
+  /* Camas del mapa de triaje */
+  .cama {
+    @apply cursor-pointer select-none rounded-xl transition-transform duration-200
+      hover:scale-[1.05] hover:shadow-brand-md active:scale-[0.97];
+  }
+  .cama.selected {
+    @apply outline outline-[3px] outline-offset-2 outline-brand-600;
+  }
+  .cama-rojo {
+    @apply animate-bed-pulse border-2 border-red-500 bg-red-100 dark:border-red-500 dark:bg-red-950;
+  }
+  .cama-naranja {
+    @apply border-2 border-orange-500 bg-orange-50 dark:border-orange-500 dark:bg-orange-950;
+  }
+  .cama-verde {
+    @apply border-2 border-green-500 bg-green-50 dark:border-green-500 dark:bg-green-950;
+  }
+  .cama-vacia {
+    @apply border-2 border-dashed border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800;
+  }
+
+  /* Modales del configurador de triaje */
+  .triage-modal-overlay {
+    @apply fixed inset-0 z-[200] flex animate-fade-in items-center justify-center bg-black/45 backdrop-blur-sm;
+  }
+  .triage-modal {
+    @apply max-h-[88vh] w-[min(560px,94vw)] animate-slide-up overflow-y-auto rounded-2xl
+      bg-white shadow-brand-lg dark:bg-slate-900;
+  }
+  .triage-modal-header {
+    @apply sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b
+      border-slate-100 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900;
+  }
+  .triage-input {
+    @apply rounded-lg border-[1.5px] border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800
+      transition-colors focus:border-brand-400 focus:shadow-brand-sm focus:outline-none
+      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200;
+  }
+  .estado-select {
+    @apply cursor-pointer rounded-lg border-[1.5px] border-slate-200 bg-white px-2 py-1 text-xs
+      transition-colors focus:border-brand-400 focus:outline-none
+      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200;
+  }
+  .hab-config-row {
+    @apply flex items-center gap-2.5 border-b border-slate-50 py-2.5
+      hover:rounded-lg hover:bg-brand-50 hover:pl-2 dark:border-slate-800 dark:hover:bg-brand-900/20;
+  }
+
+  /* Chat del Asistente IA */
+  .bubble-ai {
+    @apply rounded-2xl rounded-tl-sm border border-brand-100 bg-brand-50 text-slate-800
+      dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-100;
+  }
+  .bubble-user {
+    @apply rounded-2xl rounded-tr-sm text-white shadow-brand-sm;
+    background-image: linear-gradient(135deg, theme("colors.brand.600"), theme("colors.brand.400"));
+  }
+  .typing-dot {
+    @apply h-1.5 w-1.5 animate-dot-blink rounded-full bg-brand-400;
+  }
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* Skeleton de carga */
+  .skeleton-shimmer {
+    @apply animate-shimmer rounded bg-gradient-to-r from-brand-50 via-brand-100 to-brand-50 bg-[length:200%_100%];
+  }
+
+  /* Historial */
+  .history-item {
+    @apply cursor-pointer rounded-2xl transition-all hover:-translate-y-0.5 hover:border-brand-300
+      hover:shadow-brand-md dark:hover:border-brand-700;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

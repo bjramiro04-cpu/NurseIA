@@ -30,15 +30,17 @@ La app tiene 4 secciones (pestañas en la barra lateral):
   restaurarlas en el módulo de Análisis, copiarlas o borrarlas.
 
 Todo el estado (dark mode, idioma, configuración del piso, historial) persiste
-en `localStorage` del navegador — no hay backend ni base de datos todavía.
+en `localStorage` del navegador — no hay base de datos todavía, pero la IA sí
+tiene un backend propio (ver abajo).
 
-> **Nota sobre la IA**: la llamada a la API de Claude se hace directo desde
-> el navegador y **sin API key** (por diseño: nunca hay que exponer una key
-> en código de cliente). Esto significa que la generación con IA real
-> siempre va a fallar y la app va a usar el fallback estático — es el
-> comportamiento esperado hasta que exista un backend propio que guarde la
-> key del lado del servidor y la app le pegue a ese endpoint en vez de a
-> Anthropic directamente.
+> **Nota sobre la IA**: el navegador nunca le habla a Anthropic directamente
+> ni conoce ninguna API key. El cliente le pega a nuestros propios endpoints
+> (`/api/evolution` y `/api/chat`), que corren en el servidor de Next.js y
+> son los únicos que usan `ANTHROPIC_API_KEY` (ver
+> [Configurar la API key de Claude](#configurar-la-api-key-de-claude)). Si no
+> configuraste la key, esos endpoints devuelven un error claro y la app cae
+> automáticamente al texto de evolución estático — no se rompe nada, solo no
+> hay generación con IA real.
 
 ## Stack
 
@@ -53,9 +55,10 @@ en `localStorage` del navegador — no hay backend ni base de datos todavía.
 | IDs únicos | [nanoid](https://github.com/ai/nanoid) |
 | Utilidad de clases | [clsx](https://github.com/lukeed/clsx) |
 | Tests | [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) |
+| Backend IA | Route Handlers de Next.js (`src/app/api/`) — proxy server-side hacia la API de Anthropic |
 
-No hay backend propio: la persistencia es 100% `localStorage` y la IA se
-llama directo a la API pública de Anthropic (ver nota arriba).
+La persistencia de datos (historial, piso, config) es 100% `localStorage`
+(no hay base de datos todavía). La IA sí corre server-side, ver abajo.
 
 ## Cómo iniciar el proyecto
 
@@ -80,6 +83,28 @@ npm run lint    # ESLint
 npm test        # corre los tests con Vitest
 ```
 
+## Configurar la API key de Claude
+
+Sin esto la app funciona igual, pero la evolución PAC y el chat del
+Asistente IA van a usar el fallback estático en vez de generar contenido
+real. Para habilitar la IA:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Y completá tu key en `.env.local`:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+`.env.local` nunca se commitea (está en `.gitignore`). La key solo se lee en
+`src/services/anthropicServer.ts`, que se importa exclusivamente desde los
+route handlers en `src/app/api/evolution/route.ts` y `src/app/api/chat/route.ts`
+— nunca llega al bundle del navegador. Reiniciá `npm run dev` después de crear
+o modificar `.env.local`.
+
 ## Estructura de carpetas
 
 ```
@@ -88,7 +113,10 @@ npm test        # corre los tests con Vitest
 │   ├── app/                 # App Router de Next.js
 │   │   ├── layout.tsx       # layout raíz: fuentes (Inter, DM Serif Display), <Toaster/>
 │   │   ├── page.tsx         # única ruta de la app: monta <AppShell/>
-│   │   └── globals.css      # Tailwind + clases @layer reutilizables (btn, pills, cama, modal...)
+│   │   ├── globals.css      # Tailwind + clases @layer reutilizables (btn, pills, cama, modal...)
+│   │   └── api/             # Route Handlers server-side (el único lugar con la API key)
+│   │       ├── evolution/route.ts  # genera la evolución PAC vía Claude
+│   │       └── chat/route.ts       # responde al Asistente IA vía Claude
 │   │
 │   ├── components/          # UI, organizada por feature — ningún .tsx supera 250 líneas
 │   │   ├── layout/          # AppShell (shell + tabs), Sidebar, Header
@@ -113,7 +141,8 @@ npm test        # corre los tests con Vitest
 │   │   ├── triageAssessment.ts   # analiza una valoración y recalcula estado de cama
 │   │   ├── triageStyles.ts       # clases/colores/badge según estado de cama
 │   │   ├── evolutionFormatter.ts # parsea el texto de la evolución PAC en secciones
-│   │   ├── claudeApi.ts          # llamadas a la API de Claude (evolución PAC + chat)
+│   │   ├── claudeApi.ts          # cliente: llama a /api/evolution y /api/chat (sin key)
+│   │   ├── anthropicServer.ts    # server-only: arma los prompts y llama a Anthropic con la key
 │   │   ├── storage.ts            # wrapper tipado de localStorage
 │   │   ├── clipboard.ts          # copiar al portapapeles con fallback
 │   │   └── date.ts               # formateo de fechas (es-AR)
@@ -146,10 +175,8 @@ npm test        # corre los tests con Vitest
 
 ## Próximos pasos sugeridos
 
-- Backend propio (ver [Stack](#stack) y la nota sobre la IA): un route
-  handler en `src/app/api/` que guarde la `ANTHROPIC_API_KEY` en el servidor
-  y exponga endpoints para generar evoluciones y chatear, en vez de pegarle
-  directo a Anthropic desde el navegador.
 - Persistencia de pacientes en una base de datos real en lugar de
   `localStorage`, para que el piso/historial no dependa del navegador de
   cada enfermero.
+- Autenticación de enfermeros/turnos, ahora que ya existe backend propio
+  (`src/app/api/`) donde agregar sesión/middleware.

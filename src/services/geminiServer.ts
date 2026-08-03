@@ -43,10 +43,11 @@ async function createInteraction({
     input,
     system_instruction: systemInstruction,
     previous_interaction_id: previousInteractionId,
-    // "low": el modelo piensa antes de responder y esos tokens de razonamiento
-    // salen del mismo `max_output_tokens` — bajarlo a "low" deja más lugar
-    // para el texto final en vez de gastarse todo pensando.
-    generation_config: { max_output_tokens: maxOutputTokens, thinking_level: "low" },
+    // "minimal": el modelo piensa antes de responder y esos tokens de
+    // razonamiento salen del mismo `max_output_tokens` y suman latencia.
+    // "minimal" es el nivel más rápido — más alto que esto (low/medium/high)
+    // es MÁS lento, no menos.
+    generation_config: { max_output_tokens: maxOutputTokens, thinking_level: "minimal" },
   });
 
   if (interaction.status !== "completed" || !interaction.output_text) {
@@ -119,7 +120,7 @@ Generá la evolución PAC personalizada usando EXCLUSIVAMENTE los datos de la de
   const { text } = await createInteraction({
     systemInstruction: EVOLUTION_SYSTEM_PROMPT,
     input: userPrompt,
-    maxOutputTokens: 3000,
+    maxOutputTokens: 5000,
   });
   return text;
 }
@@ -155,7 +156,7 @@ export async function sendChatMessageServer(
   return createInteraction({
     systemInstruction: ASSISTANT_SYSTEM_PROMPT,
     input: message,
-    maxOutputTokens: 2000,
+    maxOutputTokens: 5000,
     previousInteractionId,
   });
 }

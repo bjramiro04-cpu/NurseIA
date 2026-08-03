@@ -1,24 +1,24 @@
 import { NextResponse } from "next/server";
-import type { ChatMessage } from "@/types/chat";
-import { sendChatMessageServer } from "@/services/anthropicServer";
+import { sendChatMessageServer } from "@/services/geminiServer";
 
 interface ChatRequestBody {
-  history?: ChatMessage[];
+  message?: string;
+  previousInteractionId?: string;
 }
 
 export async function POST(request: Request) {
   const body = (await request.json()) as ChatRequestBody;
-  const { history } = body;
+  const { message, previousInteractionId } = body;
 
-  if (!history?.length) {
-    return NextResponse.json({ error: "Falta history." }, { status: 400 });
+  if (!message) {
+    return NextResponse.json({ error: "Falta message." }, { status: 400 });
   }
 
   try {
-    const text = await sendChatMessageServer(history);
-    return NextResponse.json({ text });
+    const { text, interactionId } = await sendChatMessageServer(message, previousInteractionId);
+    return NextResponse.json({ text, interactionId });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error consultando al asistente.";
-    return NextResponse.json({ error: message }, { status: 502 });
+    const errorMessage = err instanceof Error ? err.message : "Error consultando al asistente.";
+    return NextResponse.json({ error: errorMessage }, { status: 502 });
   }
 }

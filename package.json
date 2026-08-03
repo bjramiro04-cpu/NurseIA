@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google/genai": "^2.15.0",
     "@heroicons/react": "^1.0.6",
     "clsx": "^2.1.1",
     "nanoid": "^5.1.5",

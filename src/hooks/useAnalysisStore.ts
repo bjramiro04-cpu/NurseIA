@@ -6,7 +6,7 @@ import type { HistoryEntry } from "@/types/history";
 import { NANDA } from "@/mocks/nanda";
 import { detectAbcdeAlert, findMatchingDiagnoses, sortByPriority, type AbcdeAlert } from "@/services/nandaEngine";
 import { normalizeText } from "@/services/text";
-import { generateEvolution } from "@/services/claudeApi";
+import { generateEvolution } from "@/services/aiApi";
 import { useHistoryStore } from "./useHistoryStore";
 
 const EMPTY_PATIENT: PatientInfo = { nombre: "", edad: "", cama: "" };

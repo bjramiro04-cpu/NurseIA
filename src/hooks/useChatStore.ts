@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
 import type { ChatMessage } from "@/types/chat";
-import { sendChatMessage } from "@/services/claudeApi";
+import { sendChatMessage } from "@/services/aiApi";
 
 export interface ChatUiMessage extends ChatMessage {
   id: string;
@@ -11,24 +11,25 @@ export interface ChatUiMessage extends ChatMessage {
 interface ChatState {
   messages: ChatUiMessage[];
   sending: boolean;
+  lastInteractionId: string | null;
   send: (text: string) => Promise<void>;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   sending: false,
+  lastInteractionId: null,
 
   send: async (text) => {
     const userMessage: ChatUiMessage = { id: nanoid(8), role: "user", content: text };
     set((state) => ({ messages: [...state.messages, userMessage], sending: true }));
 
-    const history: ChatMessage[] = get().messages.map(({ role, content }) => ({ role, content }));
-
     try {
-      const reply = await sendChatMessage(history);
+      const { text: reply, interactionId } = await sendChatMessage(text, get().lastInteractionId);
       set((state) => ({
         messages: [...state.messages, { id: nanoid(8), role: "assistant", content: reply }],
         sending: false,
+        lastInteractionId: interactionId || state.lastInteractionId,
       }));
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error desconocido";

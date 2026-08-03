@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NandaDiagnosis } from "@/types/nanda";
 import type { PatientInfo } from "@/types/analysis";
-import { generateEvolutionServer } from "@/services/anthropicServer";
+import { generateEvolutionServer } from "@/services/geminiServer";
 
 interface EvolutionRequestBody {
   rawText?: string;

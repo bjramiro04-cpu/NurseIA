@@ -33,11 +33,11 @@ Todo el estado (dark mode, idioma, configuración del piso, historial) persiste
 en `localStorage` del navegador — no hay base de datos todavía, pero la IA sí
 tiene un backend propio (ver abajo).
 
-> **Nota sobre la IA**: el navegador nunca le habla a Anthropic directamente
-> ni conoce ninguna API key. El cliente le pega a nuestros propios endpoints
+> **Nota sobre la IA**: el navegador nunca le habla a Google directamente ni
+> conoce ninguna API key. El cliente le pega a nuestros propios endpoints
 > (`/api/evolution` y `/api/chat`), que corren en el servidor de Next.js y
-> son los únicos que usan `ANTHROPIC_API_KEY` (ver
-> [Configurar la API key de Claude](#configurar-la-api-key-de-claude)). Si no
+> son los únicos que usan `GEMINI_API_KEY` (ver
+> [Configurar la API key de Gemini](#configurar-la-api-key-de-gemini)). Si no
 > configuraste la key, esos endpoints devuelven un error claro y la app cae
 > automáticamente al texto de evolución estático — no se rompe nada, solo no
 > hay generación con IA real.
@@ -55,7 +55,8 @@ tiene un backend propio (ver abajo).
 | IDs únicos | [nanoid](https://github.com/ai/nanoid) |
 | Utilidad de clases | [clsx](https://github.com/lukeed/clsx) |
 | Tests | [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) |
-| Backend IA | Route Handlers de Next.js (`src/app/api/`) — proxy server-side hacia la API de Anthropic |
+| IA | [Gemini API](https://ai.google.dev/) (`@google/genai`, modelo `gemini-3.6-flash` — tiene tier gratuito) |
+| Backend IA | Route Handlers de Next.js (`src/app/api/`) — proxy server-side hacia la API de Gemini |
 
 La persistencia de datos (historial, piso, config) es 100% `localStorage`
 (no hay base de datos todavía). La IA sí corre server-side, ver abajo.
@@ -83,7 +84,7 @@ npm run lint    # ESLint
 npm test        # corre los tests con Vitest
 ```
 
-## Configurar la API key de Claude
+## Configurar la API key de Gemini
 
 Sin esto la app funciona igual, pero la evolución PAC y el chat del
 Asistente IA van a usar el fallback estático en vez de generar contenido
@@ -93,17 +94,23 @@ real. Para habilitar la IA:
 cp .env.local.example .env.local
 ```
 
-Y completá tu key en `.env.local`:
+Conseguí una key gratis en [Google AI Studio](https://aistudio.google.com) y
+completala en `.env.local`:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
 ```
 
 `.env.local` nunca se commitea (está en `.gitignore`). La key solo se lee en
-`src/services/anthropicServer.ts`, que se importa exclusivamente desde los
+`src/services/geminiServer.ts`, que se importa exclusivamente desde los
 route handlers en `src/app/api/evolution/route.ts` y `src/app/api/chat/route.ts`
 — nunca llega al bundle del navegador. Reiniciá `npm run dev` después de crear
 o modificar `.env.local`.
+
+El chat del Asistente IA usa el modo multi-turno de Gemini (`previous_interaction_id`):
+cada respuesta trae un `interactionId` que el cliente reenvía en el siguiente
+mensaje para continuar la misma conversación, en vez de reenviar todo el
+historial cada vez.
 
 ## Estructura de carpetas
 
@@ -115,8 +122,8 @@ o modificar `.env.local`.
 │   │   ├── page.tsx         # única ruta de la app: monta <AppShell/>
 │   │   ├── globals.css      # Tailwind + clases @layer reutilizables (btn, pills, cama, modal...)
 │   │   └── api/             # Route Handlers server-side (el único lugar con la API key)
-│   │       ├── evolution/route.ts  # genera la evolución PAC vía Claude
-│   │       └── chat/route.ts       # responde al Asistente IA vía Claude
+│   │       ├── evolution/route.ts  # genera la evolución PAC vía Gemini
+│   │       └── chat/route.ts       # responde al Asistente IA vía Gemini
 │   │
 │   ├── components/          # UI, organizada por feature — ningún .tsx supera 250 líneas
 │   │   ├── layout/          # AppShell (shell + tabs), Sidebar, Header
@@ -141,8 +148,8 @@ o modificar `.env.local`.
 │   │   ├── triageAssessment.ts   # analiza una valoración y recalcula estado de cama
 │   │   ├── triageStyles.ts       # clases/colores/badge según estado de cama
 │   │   ├── evolutionFormatter.ts # parsea el texto de la evolución PAC en secciones
-│   │   ├── claudeApi.ts          # cliente: llama a /api/evolution y /api/chat (sin key)
-│   │   ├── anthropicServer.ts    # server-only: arma los prompts y llama a Anthropic con la key
+│   │   ├── aiApi.ts              # cliente: llama a /api/evolution y /api/chat (sin key)
+│   │   ├── geminiServer.ts       # server-only: arma los prompts y llama a Gemini con la key
 │   │   ├── storage.ts            # wrapper tipado de localStorage
 │   │   ├── clipboard.ts          # copiar al portapapeles con fallback
 │   │   └── date.ts               # formateo de fechas (es-AR)

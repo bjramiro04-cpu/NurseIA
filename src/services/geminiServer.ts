@@ -1,46 +1,56 @@
 import "server-only";
-import type { ChatMessage } from "@/types/chat";
+import { GoogleGenAI } from "@google/genai";
 import type { NandaDiagnosis } from "@/types/nanda";
 import type { PatientInfo } from "@/types/analysis";
 
-const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages";
-const ANTHROPIC_VERSION = "2023-06-01";
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "gemini-3.6-flash";
 
-interface AnthropicContentBlock {
-  text?: string;
-}
-interface AnthropicResponse {
-  content?: AnthropicContentBlock[];
-  error?: { message?: string };
-}
+let client: GoogleGenAI | null = null;
 
 /**
- * Único punto de contacto con la API de Anthropic. Solo debe importarse
- * desde route handlers (`src/app/api/**\/route.ts`) — nunca desde un hook,
- * componente o cualquier archivo que pueda terminar en el bundle del cliente.
- * El import de "server-only" hace que el build falle si eso llegara a pasar.
+ * Único punto de contacto con la API de Gemini. Solo debe importarse desde
+ * route handlers (`src/app/api/**\/route.ts`) — nunca desde un hook, componente
+ * o cualquier archivo que pueda terminar en el bundle del cliente. El import
+ * de "server-only" hace que el build falle si eso llegara a pasar.
  */
-async function callClaude(system: string, messages: ChatMessage[], maxTokens: number): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+function getClient(): GoogleGenAI {
+  if (client) return client;
+
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("Falta configurar ANTHROPIC_API_KEY en el servidor (.env.local).");
+    throw new Error("Falta configurar GEMINI_API_KEY en el servidor (.env.local).");
   }
 
-  const response = await fetch(ANTHROPIC_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": ANTHROPIC_VERSION,
-    },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+  client = new GoogleGenAI({ apiKey });
+  return client;
+}
+
+interface CreateInteractionOptions {
+  systemInstruction: string;
+  input: string;
+  maxOutputTokens: number;
+  previousInteractionId?: string;
+}
+
+async function createInteraction({
+  systemInstruction,
+  input,
+  maxOutputTokens,
+  previousInteractionId,
+}: CreateInteractionOptions): Promise<{ text: string; interactionId: string }> {
+  const interaction = await getClient().interactions.create({
+    model: MODEL,
+    input,
+    system_instruction: systemInstruction,
+    previous_interaction_id: previousInteractionId,
+    generation_config: { max_output_tokens: maxOutputTokens },
   });
 
-  const data = (await response.json()) as AnthropicResponse;
-  if (!response.ok) throw new Error(data.error?.message ?? "Error de la API de Claude");
+  if (interaction.status !== "completed" || !interaction.output_text) {
+    throw new Error(`La IA no completó la respuesta (status: ${interaction.status}).`);
+  }
 
-  return data.content?.map((block) => block.text ?? "").join("") ?? "";
+  return { text: interaction.output_text, interactionId: interaction.id };
 }
 
 const EVOLUTION_SYSTEM_PROMPT = `Sos nurseIA, asistente clínico especializado en enfermería argentina.
@@ -103,7 +113,12 @@ ${diagsList}
 
 Generá la evolución PAC personalizada usando EXCLUSIVAMENTE los datos de la descripción del enfermero.`;
 
-  return callClaude(EVOLUTION_SYSTEM_PROMPT, [{ role: "user", content: userPrompt }], 1200);
+  const { text } = await createInteraction({
+    systemInstruction: EVOLUTION_SYSTEM_PROMPT,
+    input: userPrompt,
+    maxOutputTokens: 1200,
+  });
+  return text;
 }
 
 const ASSISTANT_SYSTEM_PROMPT = `Sos nurseIA, un asistente clínico especializado en enfermería.
@@ -125,8 +140,19 @@ Cuando sea relevante, organizá la respuesta con negritas para los títulos y vi
 
 IMPORTANTE: Siempre recordá al final que tus respuestas son orientativas y no reemplazan el criterio clínico profesional ni el protocolo institucional.`;
 
-/** Envía el historial completo del chat del Asistente IA y devuelve la respuesta. */
-export async function sendChatMessageServer(history: ChatMessage[]): Promise<string> {
-  const reply = await callClaude(ASSISTANT_SYSTEM_PROMPT, history, 1000);
-  return reply || "No se obtuvo respuesta.";
+/**
+ * Envía un mensaje del Asistente IA. Si se pasa `previousInteractionId`,
+ * Gemini continúa esa conversación (multi-turno stateful); si no, arranca
+ * una nueva.
+ */
+export async function sendChatMessageServer(
+  message: string,
+  previousInteractionId?: string,
+): Promise<{ text: string; interactionId: string }> {
+  return createInteraction({
+    systemInstruction: ASSISTANT_SYSTEM_PROMPT,
+    input: message,
+    maxOutputTokens: 1000,
+    previousInteractionId,
+  });
 }
